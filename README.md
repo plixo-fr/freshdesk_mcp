@@ -215,6 +215,32 @@ For testing purposes, you can start the server manually:
 uvx freshdesk-mcp --env FRESHDESK_API_KEY=<your_api_key> --env FRESHDESK_DOMAIN=<your_domain>
 ```
 
+
+## Fork-specific changes (plixo-fr)
+
+This fork carries two changes not (yet) in `effytech/freshdesk_mcp`:
+
+### `list_solution_articles` returns a light payload by default
+
+```
+list_solution_articles(folder_id: int, light: bool = True)
+```
+
+By default, only `id`, `title`, `status`, `updated_at`, and `hits` are returned per article,
+instead of the full article body (`description`, `description_text`, etc.). This avoids
+exceeding MCP client payload limits on folders with several articles or long HTML content.
+Pass `light=False` to get the full article objects as before. Use `view_solution_article(id)`
+to fetch one article in full.
+
+### `mcp` dependency pinned below 2.0.0
+
+`pyproject.toml` declares `mcp[cli]>=1.3.0,<2` instead of an unbounded `>=1.3.0`. The `mcp`
+Python SDK released 2.0.0 on 2026-07-28, renaming `FastMCP` to `MCPServer` and moving
+`mcp.server.fastmcp` to `mcp.server.mcpserver`. Since this server still imports from
+`mcp.server.fastmcp`, an unbounded dependency resolves to 2.x and crashes on startup with
+`ModuleNotFoundError: No module named 'mcp.server.fastmcp'`. Migrating to the mcp 2.x API
+and lifting this pin is a separate, larger change.
+
 ## Troubleshooting
 
 - Verify your Freshdesk API key and domain are correct
