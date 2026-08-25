@@ -640,8 +640,11 @@ async def update_canned_response_folder(folder_id: int, name: str)-> Dict[str, A
         return response.json()
 
 @mcp.tool()
-async def list_solution_articles(folder_id: int)-> list[Dict[str, Any]]:
-    """List all solution articles in Freshdesk."""
+async def list_solution_articles(folder_id: int, light: bool = True)-> list[Dict[str, Any]]:
+    """List all solution articles in Freshdesk.
+    By default (light=True) returns only id/title/status/updated_at/hits per article,
+    to avoid oversized payloads on folders with several or long articles.
+    Set light=False to get full article bodies (description/description_text included)."""
     solution_articles = []
     url = f"https://{FRESHDESK_DOMAIN}/api/v2/solutions/folders/{folder_id}/articles"
     headers = {
@@ -650,7 +653,16 @@ async def list_solution_articles(folder_id: int)-> list[Dict[str, Any]]:
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         for article in response.json():
-            solution_articles.append(article)
+            if light:
+                solution_articles.append({
+                    "id": article.get("id"),
+                    "title": article.get("title"),
+                    "status": article.get("status"),
+                    "updated_at": article.get("updated_at"),
+                    "hits": article.get("hits"),
+                })
+            else:
+                solution_articles.append(article)
     return solution_articles
 
 @mcp.tool()
